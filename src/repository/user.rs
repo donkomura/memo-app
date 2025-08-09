@@ -4,6 +4,7 @@ use crate::domain::model::User;
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {
     async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError>;
 }
 
 #[derive(Debug, Error)]
@@ -58,6 +59,18 @@ impl UserRepository for SqliteUserRepository {
             }
         }
     }
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
+        let user = sqlx::query_as::<_, User>(
+            r#"SELECT id, email, password_hash, created_at FROM users WHERE email = ?"#,
+        )
+        .bind(email)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(RepoError::DbError)?;
+
+        Ok(user)
+    }
 }
 
 // Mock 実装（テストで使用）
@@ -67,6 +80,10 @@ impl UserRepository for MockRepoSuccess {
     async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
         Ok(Some(User { id: 1, email: email.to_string(), password_hash: password_hash.to_string(), created_at: 0 }))
     }
+
+    async fn find_by_email(&self, _email: &str) -> Result<Option<User>, RepoError> {
+        Ok(Some(User { id: 1, email: _email.to_string(), password_hash: "x".into(), created_at: 0 }))
+    }
 }
 
 pub struct MockRepoConflict;
@@ -74,5 +91,29 @@ pub struct MockRepoConflict;
 impl UserRepository for MockRepoConflict {
     async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
         Ok(None)
+    }
+
+    async fn find_by_email(&self, _email: &str) -> Result<Option<User>, RepoError> {
+        Ok(None)
+    }
+}
+
+// モック（任意の1ユーザーを保持して検索に応答）
+pub struct MockRepoWithUser {
+    pub user: User,
+}
+
+#[async_trait::async_trait]
+impl UserRepository for MockRepoWithUser {
+    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
+        Ok(Some(self.user.clone()))
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
+        if self.user.email == email {
+            Ok(Some(self.user.clone()))
+        } else {
+            Ok(None)
+        }
     }
 }
