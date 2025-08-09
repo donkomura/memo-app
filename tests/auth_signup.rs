@@ -1,16 +1,16 @@
 use actix_web::{http::StatusCode, test, web, App};
 use memo_app::app::auth::signup;
 use memo_app::app::model::SignupInput;
-use memo_app::repository::user::{MockRepoConflict, MockRepoSuccess, UserRepository};
+use memo_app::service::auth::{AuthService, MockAuthServiceConflict, MockAuthServiceSuccess};
 use std::sync::Arc;
 
 #[actix_web::test]
 async fn signup_success_returns_201() {
-    let mock_repo: Arc<dyn UserRepository> = Arc::new(MockRepoSuccess);
+    let mock_service: Arc<dyn AuthService> = Arc::new(MockAuthServiceSuccess);
 
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(mock_repo))
+            .app_data(web::Data::new(mock_service))
             .service(signup),
     )
     .await;
@@ -29,11 +29,11 @@ async fn signup_success_returns_201() {
 
 #[actix_web::test]
 async fn signup_conflict_returns_409() {
-    let mock_repo: Arc<dyn UserRepository> = Arc::new(MockRepoConflict);
+    let mock_service: Arc<dyn AuthService> = Arc::new(MockAuthServiceConflict);
 
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(mock_repo))
+            .app_data(web::Data::new(mock_service))
             .service(signup),
     )
     .await;
