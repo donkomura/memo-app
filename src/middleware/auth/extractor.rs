@@ -3,10 +3,7 @@ use std::future::{ready, Ready};
 
 use super::{model::JWTClaim, token::JwtTokenService};
 
-pub struct AuthenticatedUser {
-    pub claim: JWTClaim,
-    pub user_id: i64,
-}
+pub struct AuthenticatedUser(pub JWTClaim);
 
 impl FromRequest for AuthenticatedUser {
     type Error = actix_web::Error;
@@ -25,10 +22,7 @@ impl FromRequest for AuthenticatedUser {
         }
 
         match jwt.verify(token) {
-            Ok(claim) => {
-                let user_id = claim.sub;
-                ready(Ok(AuthenticatedUser { claim, user_id }))
-            }
+            Ok(claim) => ready(Ok(AuthenticatedUser(claim))),
             Err(_) => ready(Err(actix_web::error::ErrorUnauthorized("invalid token"))),
         }
     }

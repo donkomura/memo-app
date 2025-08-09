@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct User {
@@ -8,10 +8,10 @@ pub struct User {
     pub created_at: i64,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, Serialize)]
+#[derive(sqlx::FromRow, Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
     pub id: i64,
-    pub user_id: i64,
+    pub author_id: i64,
     pub title: String,
     pub content: String,
     pub created_at: i64,
