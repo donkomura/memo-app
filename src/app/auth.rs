@@ -23,7 +23,7 @@ pub async fn signup(
 
 #[post("/me")]
 pub async fn me(user: AuthenticatedUser) -> impl Responder {
-    HttpResponse::Ok().json(user.0)
+    HttpResponse::Ok().json(user.user_id)
 }
 
 #[post("/auth/login")]
