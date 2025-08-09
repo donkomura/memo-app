@@ -91,7 +91,7 @@ impl NoteRepository for MockNoteRepoFindNone {
         Err(RepoError::Internal)
     }
 
-    async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
+    async fn find_by_id(&self, _note_id: i64) -> Result<Option<Note>, RepoError> {
         Ok(None)
     }
 
@@ -119,9 +119,9 @@ impl NoteRepository for MockNoteRepoUpdateOk {
     async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> {
         Err(RepoError::Internal)
     }
-
-    async fn find_by_id(&self, _note_id: i64) -> Result<Option<Note>, RepoError> { Ok(None) }
-
+    async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
+        Ok(Some(Note { id: note_id, author_id: 42, title: "t".into(), content: "c".into(), created_at: 1, updated_at: 1 }))
+    }
     async fn update_note(
         &self,
         note_id: i64,
