@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct User {

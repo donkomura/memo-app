@@ -84,9 +84,9 @@ impl AuthService for AuthServiceImpl {
             return Err(AuthServiceError::InvalidCredentials);
         };
 
-        // Argon2のPHC文字列をパースして検証
+        // パスワードの検証
         let parsed = PasswordHash::new(&user.password_hash)
-            .map_err(|_| AuthServiceError::InvalidCredentials)?; // PHC文字列のparse
+            .map_err(|_| AuthServiceError::InvalidCredentials)?;
         Argon2::default().verify_password(password.as_bytes(), &parsed)
             .map_err(|_| AuthServiceError::InvalidCredentials)?;
 
