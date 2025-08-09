@@ -6,5 +6,3 @@ pub struct JWTClaim {
     pub iat: i64, // issued at
     pub exp: i64, // expire
 }
-
-
