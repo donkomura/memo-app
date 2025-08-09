@@ -1,6 +1,8 @@
 use thiserror::Error;
 use crate::domain::model::User;
 
+pub const USERS_EMAIL_UNIQUE_CONSTRAINT: &str = "users.email"; // unique index/constraint name
+
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {
     async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError>;
@@ -19,57 +21,119 @@ pub enum RepoError {
     Internal,
 }
 
-// SQLite の UserRepository 実装
-use sqlx::SqlitePool;
+// SQLite 実装はモジュールにまとめ、メッセージ文字列を定数化
+pub use sqlite::SqliteUserRepository;
 
-pub struct SqliteUserRepository {
-    pub(crate) pool: SqlitePool,
-}
+pub mod sqlite {
+    use super::*;
+    use sqlx::SqlitePool;
 
-impl SqliteUserRepository {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub struct SqliteUserRepository {
+        pub(crate) pool: SqlitePool,
     }
-}
 
-#[async_trait::async_trait]
-impl UserRepository for SqliteUserRepository {
-    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
-        let inserted = sqlx::query_as!(
-            User,
-            r#"INSERT INTO users (email, password_hash, created_at)
-               VALUES (?, ?, strftime('%s','now'))
-               RETURNING id, email, password_hash, created_at"#,
-            email,
-            password_hash
-        )
-        .fetch_one(&self.pool)
-        .await;
+    impl SqliteUserRepository {
+        pub fn new(pool: SqlitePool) -> Self { Self { pool } }
+    }
 
-        match inserted {
-            Ok(user) => Ok(Some(user)),
-            Err(e) => {
-                if let sqlx::Error::Database(db_err) = &e {
-                    let msg = db_err.message();
-                    if msg.contains("UNIQUE constraint failed") && msg.contains("users.email") {
-                        return Ok(None);
+    #[async_trait::async_trait]
+    impl UserRepository for SqliteUserRepository {
+        async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
+            let inserted = sqlx::query_as!(
+                User,
+                r#"INSERT INTO users (email, password_hash, created_at)
+                   VALUES (?, ?, strftime('%s','now'))
+                   RETURNING id, email, password_hash, created_at"#,
+                email,
+                password_hash
+            )
+            .fetch_one(&self.pool)
+            .await;
+
+            match inserted {
+                Ok(user) => Ok(Some(user)),
+                Err(e) => {
+                    if let sqlx::Error::Database(db_err) = &e {
+                        if db_err.is_unique_violation() && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT) {
+                            return Ok(None);
+                        }
                     }
+                    Err(RepoError::DbError(e))
                 }
-                Err(RepoError::DbError(e))
             }
         }
+
+        async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
+            let user = sqlx::query_as::<_, User>(
+                r#"SELECT id, email, password_hash, created_at FROM users WHERE email = ?"#,
+            )
+            .bind(email)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(RepoError::DbError)?;
+
+            Ok(user)
+        }
+    }
+}
+
+// PostgreSQL の実装は feature 有効時のみモジュールにまとめる
+#[cfg(feature = "postgres")]
+pub use postgres::PgUserRepository;
+
+#[cfg(feature = "postgres")]
+pub mod postgres {
+    use super::*;
+    use sqlx::PgPool;
+
+    pub struct PgUserRepository {
+        pub(crate) pool: PgPool,
     }
 
-    async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
-        let user = sqlx::query_as::<_, User>(
-            r#"SELECT id, email, password_hash, created_at FROM users WHERE email = ?"#,
-        )
-        .bind(email)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(RepoError::DbError)?;
+    impl PgUserRepository {
+        pub fn new(pool: PgPool) -> Self { Self { pool } }
+    }
 
-        Ok(user)
+    #[async_trait::async_trait]
+    impl UserRepository for PgUserRepository {
+        async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
+            let inserted = sqlx::query_as!(
+                User,
+                r#"INSERT INTO users (email, password_hash, created_at)
+                   VALUES ($1, $2, EXTRACT(EPOCH FROM NOW())::bigint)
+                   RETURNING id, email, password_hash, created_at"#,
+                email,
+                password_hash
+            )
+            .fetch_one(&self.pool)
+            .await;
+
+            match inserted {
+                Ok(user) => Ok(Some(user)),
+                Err(e) => {
+                    if let sqlx::Error::Database(db_err) = &e {
+                        if db_err.is_unique_violation()
+                            && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
+                        {
+                            return Ok(None);
+                        }
+                    }
+                    Err(RepoError::DbError(e))
+                }
+            }
+        }
+
+        async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
+            let user = sqlx::query_as!(
+                User,
+                r#"SELECT id, email, password_hash, created_at FROM users WHERE email = $1"#,
+                email
+            )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(RepoError::DbError)?;
+            Ok(user)
+        }
     }
 }
 

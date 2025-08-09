@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use memo_app::middleware::auth::model::JWTClaim;
