@@ -15,3 +15,7 @@ thiserror = "1.0"
 async-trait = "0.1"
 serde_json = "1.0"
 jsonwebtoken = "9"
+
+[features]
+# PostgreSQL サポートを有効化（`--features postgres`）
+postgres = ["sqlx/postgres"]

@@ -73,6 +73,61 @@ impl UserRepository for SqliteUserRepository {
     }
 }
 
+// PostgreSQL の UserRepository 実装（feature: postgres）
+#[cfg(feature = "postgres")]
+use sqlx::PgPool;
+
+#[cfg(feature = "postgres")]
+pub struct PgUserRepository {
+    pub(crate) pool: PgPool,
+}
+
+#[cfg(feature = "postgres")]
+impl PgUserRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[cfg(feature = "postgres")]
+#[async_trait::async_trait]
+impl UserRepository for PgUserRepository {
+    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
+        let inserted = sqlx::query_as!(
+            User,
+            r#"INSERT INTO users (email, password_hash, created_at)
+               VALUES ($1, $2, EXTRACT(EPOCH FROM NOW())::bigint)
+               RETURNING id, email, password_hash, created_at"#,
+            email,
+            password_hash
+        )
+        .fetch_one(&self.pool)
+        .await;
+
+        match inserted {
+            Ok(user) => Ok(Some(user)),
+            Err(e) => {
+                if let sqlx::Error::Database(db_err) = &e {
+                    if db_err.code().as_deref() == Some("23505") && db_err.message().contains("users_email_key") {
+                        return Ok(None);
+                    }
+                }
+                Err(RepoError::DbError(e))
+            }
+        }
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
+        let user = sqlx::query_as!(
+            User,
+            r#"SELECT id, email, password_hash, created_at FROM users WHERE email = $1"#,
+            email
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(RepoError::DbError)?;
+        Ok(user)
+    }
+}
+
 // Mock 実装（テストで使用）
 pub struct MockRepoSuccess;
 #[async_trait::async_trait]
