@@ -1,6 +1,6 @@
 # マイグレーション手順（SQLite / SQLx）
 
-このプロジェクトは SQLite を使用します。接続文字列は `DATABASE_URL` で指定します（例: `sqlite:db.sqlite`）。
+このプロジェクトは SQLite を使用します。接続文字列は `DATABASE_URL` で指定します（例: `sqlite:memo.db`）。
 
 ## 事前準備
 - sqlx-cli をインストール
@@ -33,7 +33,7 @@ sqlx migrate add -r <migration_name> --source db/migrations
 
 ```bash
 # DB を作り直して再適用
-rm -f db.sqlite
+rm -f memo.db
 sqlx database create
 sqlx migrate run --source db/migrations
 ```

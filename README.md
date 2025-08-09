@@ -11,7 +11,7 @@
      ```
   2. 環境変数の設定（例）
      ```bash
-     echo "DATABASE_URL=sqlite:db.sqlite" > .env
+     echo "DATABASE_URL=sqlite:memo.db" > .env
      ```
 
 ## 開発者向け
