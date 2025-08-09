@@ -16,3 +16,4 @@
 
 ## 開発者向け
 - [マイグレーション手順](docs/migrations.md)
+- [AuthorizedUser（AuthenticatedUser）の使い方](docs/authorized_user.md)
