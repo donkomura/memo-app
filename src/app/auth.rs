@@ -12,6 +12,9 @@ pub async fn signup(
     match auth_service.signup(&payload.email, &payload.password).await {
         Ok(true) => HttpResponse::Created().finish(),
         Ok(false) => HttpResponse::Conflict().finish(),
+        Err(crate::service::auth::AuthServiceError::InvalidEmail | crate::service::auth::AuthServiceError::InvalidPassword) => {
+            HttpResponse::BadRequest().finish()
+        }
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
