@@ -17,13 +17,13 @@ pub struct LoginOutput {
     pub token: String, // JWT
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CreateNoteInput {
     pub title: String,
     pub content: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct UpdateNoteInput {
     pub title: Option<String>,
     pub content: Option<String>,
