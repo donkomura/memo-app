@@ -1,6 +1,7 @@
 mod app;
 mod repository;
 mod service;
+mod domain;
 
 use actix_web::{web, App, HttpServer};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
