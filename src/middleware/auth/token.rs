@@ -24,6 +24,7 @@ pub struct JwtTokenService {
 }
 
 impl JwtTokenService {
+    const DEFAULT_EXPIRATION_SECS: u64 = 3600;
     pub fn from_secret(secret: &[u8], expiration_secs: u64) -> Self {
         Self {
             encoding: EncodingKey::from_secret(secret),
@@ -36,7 +37,7 @@ impl JwtTokenService {
         let secret = std::env::var("JWT_SECRET").map_err(|_| TokenError::MissingSecret)?;
         let exp = match std::env::var("JWT_EXP_SECS") {
             Ok(v) => v.parse::<u64>().map_err(|_| TokenError::InvalidExpiration)?,
-            Err(_) => 3600,
+            Err(_) => Self::DEFAULT_EXPIRATION_SECS,
         };
         Ok(Self::from_secret(secret.as_bytes(), exp))
     }
