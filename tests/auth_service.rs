@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use memo_app::repository::user::{RepoError, UserRepository, MockRepoSuccess, MockRepoConflict};
+use memo_app::domain::model::User;
 use memo_app::service::auth::{AuthService, AuthServiceImpl, AuthServiceError};
 
 struct MockRepoError;
 
 #[async_trait]
 impl UserRepository for MockRepoError {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<bool, RepoError> {
+    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
         Err(RepoError::Internal)
     }
 }
@@ -19,7 +20,7 @@ async fn signup_returns_true_when_user_created() {
     let service = AuthServiceImpl::new(repo);
 
     let result = service.signup("a@example.com", "password123").await;
-    assert!(matches!(result, Ok(true)));
+    assert!(matches!(result, Ok(Some(_))));
 }
 
 #[tokio::test]
@@ -28,7 +29,7 @@ async fn signup_returns_false_when_email_conflicts() {
     let service = AuthServiceImpl::new(repo);
 
     let result = service.signup("a@example.com", "password123").await;
-    assert!(matches!(result, Ok(false)));
+    assert!(matches!(result, Ok(None)));
 }
 
 #[tokio::test]
