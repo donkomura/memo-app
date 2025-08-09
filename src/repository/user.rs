@@ -54,9 +54,9 @@ pub mod sqlite {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => {
                     if let sqlx::Error::Database(db_err) = &e {
-                        // if db_err.is_unique_violation() && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT) {
-                        //     return Ok(None);
-                        // }
+                        if db_err.is_unique_violation() && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT) {
+                            return Ok(None);
+                        }
                     }
                     Err(RepoError::DbError(e))
                 }
