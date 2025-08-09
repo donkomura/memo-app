@@ -1,8 +1,9 @@
 use thiserror::Error;
+use crate::domain::model::User;
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {
-    async fn create_user(&self, email: &str, password_hash: &str) -> Result<bool, RepoError>;
+    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError>;
 }
 
 #[derive(Debug, Error)]
@@ -32,23 +33,25 @@ impl SqliteUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for SqliteUserRepository {
-    async fn create_user(&self, email: &str, password_hash: &str) -> Result<bool, RepoError> {
-        let result = sqlx::query!(
+    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
+        let inserted = sqlx::query_as!(
+            User,
             r#"INSERT INTO users (email, password_hash, created_at)
-               VALUES (?, ?, strftime('%s','now'))"#,
+               VALUES (?, ?, strftime('%s','now'))
+               RETURNING id, email, password_hash, created_at"#,
             email,
             password_hash
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await;
 
-        match result {
-            Ok(_) => Ok(true),
+        match inserted {
+            Ok(user) => Ok(Some(user)),
             Err(e) => {
                 if let sqlx::Error::Database(db_err) = &e {
                     let msg = db_err.message();
                     if msg.contains("UNIQUE constraint failed") && msg.contains("users.email") {
-                        return Ok(false);
+                        return Ok(None);
                     }
                 }
                 Err(RepoError::DbError(e))
@@ -61,15 +64,15 @@ impl UserRepository for SqliteUserRepository {
 pub struct MockRepoSuccess;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoSuccess {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<bool, RepoError> {
-        Ok(true)
+    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
+        Ok(Some(User { id: 1, email: email.to_string(), password_hash: password_hash.to_string(), created_at: 0 }))
     }
 }
 
 pub struct MockRepoConflict;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoConflict {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<bool, RepoError> {
-        Ok(false)
+    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
+        Ok(None)
     }
 }
