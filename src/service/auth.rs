@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use argon2::{Argon2, PasswordHasher};
-use password_hash::{rand_core::OsRng, SaltString};
+use password_hash::{rand_core::OsRng, PasswordHash, PasswordVerifier, SaltString};
 use thiserror::Error;
 
 use crate::repository::user::{UserRepository, RepoError};
@@ -25,6 +25,8 @@ pub trait AuthService: Send + Sync + 'static {
     /// - Err(InvalidEmail | InvalidPassword): バリデーション違反
     /// - Err(Repo(_)) / Err(HashError): 内部エラー
     async fn signup(&self, email: &str, password: &str) -> Result<Option<User>, AuthServiceError>;
+
+    async fn login(&self, email: &str, password: &str) -> Result<Option<User>, AuthServiceError>;
 }
 
 #[derive(Debug, Error)]
@@ -40,6 +42,9 @@ pub enum AuthServiceError {
 
     #[error("invalid password")]
     InvalidPassword,
+
+    #[error("invalid credentials")]
+    InvalidCredentials,
 }
 
 pub struct AuthServiceImpl {
@@ -73,6 +78,20 @@ impl AuthService for AuthServiceImpl {
             .await?;
         Ok(created)
     }
+
+    async fn login(&self, email: &str, password: &str) -> Result<Option<User>, AuthServiceError> {
+        let Some(user) = self.user_repository.find_by_email(email).await? else {
+            return Err(AuthServiceError::InvalidCredentials);
+        };
+
+        // Argon2のPHC文字列をパースして検証
+        let parsed = PasswordHash::new(&user.password_hash)
+            .map_err(|_| AuthServiceError::InvalidCredentials)?; // PHC文字列のparse
+        Argon2::default().verify_password(password.as_bytes(), &parsed)
+            .map_err(|_| AuthServiceError::InvalidCredentials)?;
+
+        Ok(Some(user))
+    }
 }
 
 // Mocks for tests
@@ -83,6 +102,10 @@ impl AuthService for MockAuthServiceSuccess {
     async fn signup(&self, email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
         Ok(Some(User { id: 1, email: email.to_string(), password_hash: "x".into(), created_at: 0 }))
     }
+
+    async fn login(&self, _email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
+        Ok(Some(User { id: 1, email: _email.to_string(), password_hash: _password.into(), created_at: 0 }))
+    }
 }
 
 pub struct MockAuthServiceConflict;
@@ -90,6 +113,10 @@ pub struct MockAuthServiceConflict;
 #[async_trait::async_trait]
 impl AuthService for MockAuthServiceConflict {
     async fn signup(&self, _email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
+        Ok(None)
+    }
+
+    async fn login(&self, _email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
         Ok(None)
     }
 }
