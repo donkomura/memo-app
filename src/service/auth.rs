@@ -5,6 +5,7 @@ use password_hash::{rand_core::OsRng, SaltString};
 use thiserror::Error;
 
 use crate::repository::user::{UserRepository, RepoError};
+use crate::domain::model::User;
 
 /// 認証に関するユースケースを提供するサービス層。
 #[async_trait::async_trait]
@@ -19,11 +20,11 @@ pub trait AuthService: Send + Sync + 'static {
     ///   - ASCII 数字を1文字以上含む
     ///
     /// 返り値:
-    /// - Ok(true): ユーザー作成に成功
-    /// - Ok(false): email が既に存在（競合）
+    /// - Ok(Some(User)): ユーザー作成に成功（作成された `User` を返す）
+    /// - Ok(None): email が既に存在（競合）
     /// - Err(InvalidEmail | InvalidPassword): バリデーション違反
     /// - Err(Repo(_)) / Err(HashError): 内部エラー
-    async fn signup(&self, email: &str, password: &str) -> Result<bool, AuthServiceError>;
+    async fn signup(&self, email: &str, password: &str) -> Result<Option<User>, AuthServiceError>;
 }
 
 #[derive(Debug, Error)]
@@ -53,7 +54,7 @@ impl AuthServiceImpl {
 
 #[async_trait::async_trait]
 impl AuthService for AuthServiceImpl {
-    async fn signup(&self, email: &str, password: &str) -> Result<bool, AuthServiceError> {
+    async fn signup(&self, email: &str, password: &str) -> Result<Option<User>, AuthServiceError> {
         if !is_valid_email(email) {
             return Err(AuthServiceError::InvalidEmail);
         }
@@ -79,8 +80,8 @@ pub struct MockAuthServiceSuccess;
 
 #[async_trait::async_trait]
 impl AuthService for MockAuthServiceSuccess {
-    async fn signup(&self, _email: &str, _password: &str) -> Result<bool, AuthServiceError> {
-        Ok(true)
+    async fn signup(&self, email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
+        Ok(Some(User { id: 1, email: email.to_string(), password_hash: "x".into(), created_at: 0 }))
     }
 }
 
@@ -88,8 +89,8 @@ pub struct MockAuthServiceConflict;
 
 #[async_trait::async_trait]
 impl AuthService for MockAuthServiceConflict {
-    async fn signup(&self, _email: &str, _password: &str) -> Result<bool, AuthServiceError> {
-        Ok(false)
+    async fn signup(&self, _email: &str, _password: &str) -> Result<Option<User>, AuthServiceError> {
+        Ok(None)
     }
 }
 
