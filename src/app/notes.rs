@@ -1,4 +1,4 @@
-use actix_web::{get, post, put, web, HttpResponse, Responder};
+use actix_web::{get, post, put, delete, web, HttpResponse, Responder};
 use std::sync::Arc;
 
 use crate::middleware::auth::extractor::AuthenticatedUser;
@@ -66,3 +66,35 @@ pub async fn update_note(
     }
 }
 
+#[delete("/notes/{id}")]
+pub async fn delete_note(
+    user: AuthenticatedUser,
+    note_repo: web::Data<Arc<dyn NoteRepository>>,
+    path: web::Path<i64>,
+) -> impl Responder {
+    let note_id = path.into_inner();
+    let user_id = user.0.sub;
+    let note = match note_repo.find_by_id(note_id).await {
+        Ok(Some(note)) => note,
+        Ok(None) => return HttpResponse::NotFound().finish(),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if !note.is_owner(user_id) {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    match note_repo.delete_note(note_id, user_id).await {
+        Ok(true) => HttpResponse::NoContent().finish(),
+        Ok(false) => HttpResponse::NotFound().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+#[get("/notes")]
+pub async fn list_notes(
+    note_repo: web::Data<Arc<dyn NoteRepository>>,
+) -> impl Responder {
+    match note_repo.list_notes().await {
+        Ok(notes) => HttpResponse::Ok().json(notes),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}

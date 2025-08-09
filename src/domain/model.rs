@@ -5,6 +5,7 @@ pub struct User {
     pub id: i64,
     pub email: String,
     pub password_hash: String, // Argon2id PHC string
+    #[allow(dead_code)]
     pub created_at: i64,
 }
 
