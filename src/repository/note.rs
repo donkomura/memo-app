@@ -12,6 +12,7 @@ pub trait NoteRepository: Send + Sync + 'static {
         title: Option<&str>,
         content: Option<&str>,
     ) -> Result<Option<Note>, RepoError>;
+    async fn delete_note(&self, note_id: i64, user_id: i64) -> Result<bool, RepoError>;
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError>;
 }
 
@@ -83,6 +84,17 @@ impl NoteRepository for SqliteNoteRepository {
         .map_err(RepoError::DbError)?;
 
         Ok(updated)
+    }
+    async fn delete_note(&self, note_id: i64, user_id: i64) -> Result<bool, RepoError> {
+        let result = sqlx::query!(
+            r#"DELETE FROM notes WHERE id = ? AND user_id = ?"#,
+            note_id,
+            user_id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(RepoError::DbError)?;
+        Ok(result.rows_affected() > 0)
     }
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         let notes = sqlx::query_as!(

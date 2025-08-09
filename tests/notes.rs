@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use actix_web::{http::StatusCode, test, web, App};
 use async_trait::async_trait;
-use memo_app::app::notes::{create_note, get_note, update_note};
+use memo_app::app::notes::{create_note, get_note, update_note, delete_note};
 use memo_app::app::model::{CreateNoteInput, UpdateNoteInput};
 use memo_app::domain::model::Note;
 use memo_app::middleware::auth::token::JwtTokenService;
@@ -43,6 +43,8 @@ impl NoteRepository for MockNoteRepoCreateOk {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
+
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
 }
 
 struct MockNoteRepoFindSome;
@@ -77,6 +79,8 @@ impl NoteRepository for MockNoteRepoFindSome {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
+
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
 }
 
 struct MockNoteRepoFindNone;
@@ -104,6 +108,8 @@ impl NoteRepository for MockNoteRepoFindNone {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
+
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
 }
 
 struct MockNoteRepoUpdateOk;
@@ -136,6 +142,8 @@ impl NoteRepository for MockNoteRepoUpdateOk {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
+
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
 }
 
 struct MockNoteRepoUpdateNone;
@@ -155,6 +163,63 @@ impl NoteRepository for MockNoteRepoUpdateNone {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
+
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+}
+
+struct MockNoteRepoDeleteOk;
+
+#[async_trait]
+impl NoteRepository for MockNoteRepoDeleteOk {
+    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> { Err(RepoError::Internal) }
+    async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
+        Ok(Some(Note { id: note_id, author_id: 1, title: "t".into(), content: "c".into(), created_at: 1, updated_at: 1 }))
+    }
+    async fn update_note(&self, _note_id: i64, _user_id: i64, _title: Option<&str>, _content: Option<&str>) -> Result<Option<Note>, RepoError> { Ok(None) }
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> { Ok(vec![]) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(true) }
+}
+
+#[actix_web::test]
+async fn delete_note_returns_204_for_owner() {
+    let repo: Arc<dyn NoteRepository> = Arc::new(MockNoteRepoDeleteOk);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(repo))
+            .app_data(web::Data::new(jwt()))
+            .service(delete_note),
+    )
+    .await;
+
+    let token = jwt().generate(1).unwrap();
+    let req = test::TestRequest::delete()
+        .uri("/notes/5")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+#[actix_web::test]
+async fn delete_note_returns_404_when_absent() {
+    let repo: Arc<dyn NoteRepository> = Arc::new(MockNoteRepoUpdateNone);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(repo))
+            .app_data(web::Data::new(jwt()))
+            .service(delete_note),
+    )
+    .await;
+
+    let token = jwt().generate(1).unwrap();
+    let req = test::TestRequest::delete()
+        .uri("/notes/5")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
 
 fn jwt() -> JwtTokenService {
