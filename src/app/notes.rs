@@ -40,10 +40,15 @@ pub async fn update_note(
 ) -> impl Responder {
     let note_id = path.into_inner();
     let user_id = user.0.sub;
-    let note = note_repo.find_by_id(note_id).await.unwrap().unwrap();
+    let note = match note_repo.find_by_id(note_id).await {
+        Ok(Some(note)) => note,
+        Ok(None) => return HttpResponse::NotFound().finish(),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
     if !note.is_owner(user_id) {
         return HttpResponse::Forbidden().finish();
     }
+
     match note_repo
         .update_note(
             note_id,
