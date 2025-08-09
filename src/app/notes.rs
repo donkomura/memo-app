@@ -66,3 +66,12 @@ pub async fn update_note(
     }
 }
 
+#[get("/notes")]
+pub async fn list_notes(
+    note_repo: web::Data<Arc<dyn NoteRepository>>,
+) -> impl Responder {
+    match note_repo.list_notes().await {
+        Ok(notes) => HttpResponse::Ok().json(notes),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}

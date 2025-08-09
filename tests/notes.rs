@@ -39,6 +39,10 @@ impl NoteRepository for MockNoteRepoCreateOk {
     ) -> Result<Option<Note>, RepoError> {
         Ok(None)
     }
+
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
+    }
 }
 
 struct MockNoteRepoFindSome;
@@ -69,6 +73,10 @@ impl NoteRepository for MockNoteRepoFindSome {
     ) -> Result<Option<Note>, RepoError> {
         Ok(None)
     }
+
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
+    }
 }
 
 struct MockNoteRepoFindNone;
@@ -91,6 +99,10 @@ impl NoteRepository for MockNoteRepoFindNone {
         _content: Option<&str>,
     ) -> Result<Option<Note>, RepoError> {
         Ok(None)
+    }
+
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
     }
 }
 
@@ -120,6 +132,10 @@ impl NoteRepository for MockNoteRepoUpdateOk {
             updated_at: 2,
         }))
     }
+
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
+    }
 }
 
 struct MockNoteRepoUpdateNone;
@@ -135,6 +151,10 @@ impl NoteRepository for MockNoteRepoUpdateNone {
         _title: Option<&str>,
         _content: Option<&str>,
     ) -> Result<Option<Note>, RepoError> { Ok(None) }
+
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
+    }
 }
 
 fn jwt() -> JwtTokenService {

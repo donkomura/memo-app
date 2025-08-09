@@ -12,6 +12,7 @@ pub trait NoteRepository: Send + Sync + 'static {
         title: Option<&str>,
         content: Option<&str>,
     ) -> Result<Option<Note>, RepoError>;
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError>;
 }
 
 use sqlx::SqlitePool;
@@ -82,6 +83,18 @@ impl NoteRepository for SqliteNoteRepository {
         .map_err(RepoError::DbError)?;
 
         Ok(updated)
+    }
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        let notes = sqlx::query_as!(
+            Note,
+            r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
+               FROM notes
+               ORDER BY created_at DESC"#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(RepoError::DbError)?;
+        Ok(notes)
     }
 }
 

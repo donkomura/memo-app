@@ -9,7 +9,7 @@ use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::sync::Arc;
 
 use app::auth::{signup, login, me};
-use app::notes::{get_note, create_note, update_note};
+use app::notes::{get_note, create_note, update_note, list_notes};
 use repository::user::{SqliteUserRepository, UserRepository};
 use repository::note::{SqliteNoteRepository, NoteRepository};
 use service::auth::{AuthService, AuthServiceImpl};
@@ -40,6 +40,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_note)
             .service(create_note)
             .service(update_note)
+            .service(list_notes)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
