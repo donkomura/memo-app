@@ -40,19 +40,20 @@ pub async fn update_note(
 ) -> impl Responder {
     let note_id = path.into_inner();
     let user_id = user.0.sub;
+    let note = note_repo.find_by_id(note_id).await.unwrap().unwrap();
+    if !note.is_owner(user_id) {
+        return HttpResponse::Forbidden().finish();
+    }
     match note_repo
         .update_note(
             note_id,
-            user.0.sub,
+            user_id,
             payload.title.as_deref(),
             payload.content.as_deref(),
         )
         .await
     {
-        Ok(Some(note)) => {
-            if !note.is_owner(user_id) {
-                return HttpResponse::Forbidden().finish();
-            }
+        Ok(Some(note)) => { 
             HttpResponse::Ok().json(note)
         }
         Ok(None) => HttpResponse::NotFound().finish(),
