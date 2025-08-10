@@ -37,13 +37,13 @@ jobs:
           key: ${{ matrix.profile}}
 
       - name: Check
-        run: cargo check --profile ${{ matrix.profile }} ${{ matrix.feature }}
+        run: cargo check --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
 
       - name: Build with profiling
-        run: cargo build --profile ${{ matrix.profile }} ${{ matrix.feature }}
+        run: cargo build --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
 
       - name: Test
-        run: cargo test --profile ${{ matrix.profile }} ${{ matrix.feature }} --all -- --nocapture
+        run: cargo test --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --all -- --nocapture
 
   clippy:
     runs-on: ubuntu-latest
