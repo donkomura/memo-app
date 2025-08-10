@@ -1,0 +1,73 @@
+name: Cargo Build & Test
+
+on:
+  push:
+    branches:
+        - main
+  pull_request:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - profile: debug
+            feature: ""
+            name: debug
+          - profile: release
+            feature: ""
+            name: release
+          - profile: debug
+            feature: "postgres"
+            name: debug-postgres
+          - profile: release
+            feature: "postgres"
+            name: release-postgres
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.profile}}
+
+      - name: Check
+        run: cargo check --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
+
+      - name: Build with profiling
+        run: cargo build --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
+
+      - name: Test
+        run: cargo test --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --all -- --nocapture
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run clippy
+        run: cargo clippy --all --all-targets
+
+  rustfmt:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: Run rustfmt
+        run: cargo fmt --all -- --check
