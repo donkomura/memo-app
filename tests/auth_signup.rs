@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, test, web, App};
+use actix_web::{App, http::StatusCode, test, web};
 use memo_app::app::auth::signup;
 use memo_app::app::model::SignupInput;
 use memo_app::service::auth::{AuthService, MockAuthServiceConflict, MockAuthServiceSuccess};
@@ -49,5 +49,3 @@ async fn signup_conflict_returns_409() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
-
-

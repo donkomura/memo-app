@@ -1,10 +1,10 @@
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, post, web};
 use std::sync::Arc;
 
-use crate::app::model::{SignupInput, LoginInput, LoginOutput};
-use crate::service::auth::AuthService;
-use crate::middleware::auth::token::JwtTokenService;
+use crate::app::model::{LoginInput, LoginOutput, SignupInput};
 use crate::middleware::auth::extractor::AuthenticatedUser;
+use crate::middleware::auth::token::JwtTokenService;
+use crate::service::auth::AuthService;
 
 #[post("/auth/signup")]
 pub async fn signup(
@@ -14,9 +14,10 @@ pub async fn signup(
     match auth_service.signup(&payload.email, &payload.password).await {
         Ok(Some(_user)) => HttpResponse::Created().finish(),
         Ok(None) => HttpResponse::Conflict().finish(),
-        Err(crate::service::auth::AuthServiceError::InvalidEmail | crate::service::auth::AuthServiceError::InvalidPassword) => {
-            HttpResponse::BadRequest().finish()
-        }
+        Err(
+            crate::service::auth::AuthServiceError::InvalidEmail
+            | crate::service::auth::AuthServiceError::InvalidPassword,
+        ) => HttpResponse::BadRequest().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
