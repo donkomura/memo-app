@@ -16,16 +16,16 @@ jobs:
       matrix:
         include:
           - profile: debug
-            feature: ""
+            feature: "default"
             name: debug
           - profile: release
-            feature: ""
+            feature: "default"
             name: release
           - profile: debug
-            feature: "postgres"
+            feature: "postgres --no-default-features"
             name: debug-postgres
           - profile: release
-            feature: "postgres"
+            feature: "postgres --no-default-features"
             name: release-postgres
     timeout-minutes: 60
     runs-on: ubuntu-latest
@@ -37,13 +37,13 @@ jobs:
           key: ${{ matrix.profile}}
 
       - name: Check
-        run: cargo check --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
+        run: cargo check --profile ${{ matrix.profile }} ${{ matrix.feature }}
 
       - name: Build with profiling
-        run: cargo build --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
+        run: cargo build --profile ${{ matrix.profile }} ${{ matrix.feature }}
 
       - name: Test
-        run: cargo test --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --all -- --nocapture
+        run: cargo test --profile ${{ matrix.profile }} ${{ matrix.feature }} --all -- --nocapture
 
   clippy:
     runs-on: ubuntu-latest
