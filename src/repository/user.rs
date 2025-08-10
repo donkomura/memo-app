@@ -66,10 +66,10 @@ pub mod sqlite {
                 Err(e) => {
                     if let sqlx::Error::Database(db_err) = &e
                         && db_err.is_unique_violation()
-                            && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
-                        {
-                            return Ok(None);
-                        }
+                        && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
+                    {
+                        return Ok(None);
+                    }
                     Err(RepoError::DbError(e))
                 }
             }
