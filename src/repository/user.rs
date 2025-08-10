@@ -1,7 +1,7 @@
 use crate::domain::model::User;
 use thiserror::Error;
 
-pub const USERS_EMAIL_UNIQUE_CONSTRAINT: &str = "users.email"; // unique index/constraint name
+pub const USERS_EMAIL_UNIQUE_CONSTRAINT: &str = "users_email_key"; // unique index/constraint name
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {
@@ -117,9 +117,12 @@ pub mod postgres {
             password_hash: &str,
         ) -> Result<Option<User>, RepoError> {
             let inserted = sqlx::query_as::<sqlx::Postgres, User>(
-                r#"INSERT INTO users (email, password_hash, created_at)
-                   VALUES ($1, $2, EXTRACT(EPOCH FROM NOW())::bigint)
-                   RETURNING id, email, password_hash, created_at"#,
+                r#"INSERT INTO users (email, password_hash)
+                   VALUES ($1, $2)
+                   RETURNING id,
+                             email,
+                             password_hash,
+                             EXTRACT(EPOCH FROM created_at)::bigint as created_at"#,
             )
             .bind(email)
             .bind(password_hash)
@@ -143,7 +146,11 @@ pub mod postgres {
 
         async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
             let user = sqlx::query_as::<sqlx::Postgres, User>(
-                r#"SELECT id, email, password_hash, created_at FROM users WHERE email = $1"#,
+                r#"SELECT id,
+                          email,
+                          password_hash,
+                          EXTRACT(EPOCH FROM created_at)::bigint as created_at
+                   FROM users WHERE email = $1"#,
             )
             .bind(email)
             .fetch_optional(&self.pool)
