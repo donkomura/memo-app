@@ -1,26 +1,26 @@
 mod app;
-mod repository;
-mod service;
 mod domain;
 mod middleware;
+mod repository;
+mod service;
 
-use actix_web::{web, App, HttpServer};
-#[cfg(not(feature = "postgres"))]
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use actix_web::{App, HttpServer, web};
 #[cfg(feature = "postgres")]
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, postgres::PgPoolOptions};
+#[cfg(not(feature = "postgres"))]
+use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::sync::Arc;
 
-use app::auth::{signup, login, me};
-use app::notes::{get_note, create_note, update_note, delete_note, list_notes};
-use repository::user::UserRepository;
-use repository::note::NoteRepository;
-#[cfg(not(feature = "postgres"))]
-use repository::{user::SqliteUserRepository, note::SqliteNoteRepository};
-#[cfg(feature = "postgres")]
-use repository::{user::PgUserRepository, note::PgNoteRepository};
-use service::auth::{AuthService, AuthServiceImpl};
+use app::auth::{login, me, signup};
+use app::notes::{create_note, delete_note, get_note, list_notes, update_note};
 use middleware::auth::token::JwtTokenService;
+use repository::note::NoteRepository;
+use repository::user::UserRepository;
+#[cfg(feature = "postgres")]
+use repository::{note::PgNoteRepository, user::PgUserRepository};
+#[cfg(not(feature = "postgres"))]
+use repository::{note::SqliteNoteRepository, user::SqliteUserRepository};
+use service::auth::{AuthService, AuthServiceImpl};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

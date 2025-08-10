@@ -13,6 +13,7 @@ pub trait UserRepository: Send + Sync + 'static {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError>;
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum RepoError {
     #[error("database error: {0}")]
@@ -26,8 +27,10 @@ pub enum RepoError {
 }
 
 // SQLite 実装はモジュールにまとめ、メッセージ文字列を定数化
+#[cfg(not(feature = "postgres"))]
 pub use sqlite::SqliteUserRepository;
 
+#[cfg(not(feature = "postgres"))]
 pub mod sqlite {
     use super::*;
     use sqlx::SqlitePool;
@@ -62,12 +65,11 @@ pub mod sqlite {
             match inserted {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => {
-                    if let sqlx::Error::Database(db_err) = &e {
-                        if db_err.is_unique_violation()
-                            && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
-                        {
-                            return Ok(None);
-                        }
+                    if let sqlx::Error::Database(db_err) = &e
+                        && db_err.is_unique_violation()
+                        && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
+                    {
+                        return Ok(None);
                     }
                     Err(RepoError::DbError(e))
                 }
@@ -153,6 +155,7 @@ pub mod postgres {
 }
 
 // Mock 実装（テストで使用）
+#[allow(dead_code)]
 pub struct MockRepoSuccess;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoSuccess {
@@ -179,6 +182,7 @@ impl UserRepository for MockRepoSuccess {
     }
 }
 
+#[allow(dead_code)]
 pub struct MockRepoConflict;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoConflict {
@@ -196,6 +200,7 @@ impl UserRepository for MockRepoConflict {
 }
 
 // モック（任意の1ユーザーを保持して検索に応答）
+#[allow(dead_code)]
 pub struct MockRepoWithUser {
     pub user: User,
 }

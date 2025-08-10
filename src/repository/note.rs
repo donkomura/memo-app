@@ -21,8 +21,10 @@ pub trait NoteRepository: Send + Sync + 'static {
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError>;
 }
 // SQLite 実装をモジュールにまとめる
+#[cfg(not(feature = "postgres"))]
 pub use sqlite::SqliteNoteRepository;
 
+#[cfg(not(feature = "postgres"))]
 pub mod sqlite {
     use super::*;
     use sqlx::SqlitePool;
