@@ -50,7 +50,7 @@ pub mod sqlite {
             let inserted = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"INSERT INTO notes (user_id, title, content, created_at, updated_at)
                    VALUES (?, ?, ?, strftime('%s','now'), strftime('%s','now'))
-                   RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
+                   RETURNING id, user_id as author_id, title, content, created_at, updated_at"#,
             )
             .bind(user_id)
             .bind(title)
@@ -63,7 +63,7 @@ pub mod sqlite {
         }
         async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
             let note = sqlx::query_as::<sqlx::Sqlite, Note>(
-                r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
+                r#"SELECT id, user_id as author_id, title, content, created_at, updated_at
                    FROM notes
                    WHERE id = ?"#,
             )
@@ -88,7 +88,7 @@ pub mod sqlite {
                        content = COALESCE(?, content),
                        updated_at = strftime('%s','now')
                    WHERE id = ? AND user_id = ?
-                   RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
+                   RETURNING id, user_id as author_id, title, content, created_at, updated_at"#,
             )
             .bind(title)
             .bind(content)
@@ -112,7 +112,7 @@ pub mod sqlite {
         }
         async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
             let notes = sqlx::query_as::<sqlx::Sqlite, Note>(
-                r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
+                r#"SELECT id, user_id as author_id, title, content, created_at, updated_at
                    FROM notes
                    ORDER BY created_at DESC"#
             )
@@ -154,12 +154,12 @@ pub mod postgres {
             let inserted = sqlx::query_as::<sqlx::Postgres, Note>(
                 r#"INSERT INTO notes (user_id, title, content, created_at, updated_at)
                    VALUES ($1, $2, $3, NOW(), NOW())
-                   RETURNING id as "id!: i64",
-                             user_id as "author_id!: i64",
+                   RETURNING id,
+                             user_id as author_id,
                              title,
                              content,
-                             EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64",
-                             EXTRACT(EPOCH FROM updated_at)::bigint as "updated_at!: i64""#,
+                             EXTRACT(EPOCH FROM created_at)::bigint as created_at,
+                             EXTRACT(EPOCH FROM updated_at)::bigint as updated_at"#,
             )
             .bind(user_id)
             .bind(title)
@@ -172,12 +172,12 @@ pub mod postgres {
 
         async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
             let note = sqlx::query_as::<sqlx::Postgres, Note>(
-                r#"SELECT id as "id!: i64",
-                          user_id as "author_id!: i64",
+                r#"SELECT id,
+                          user_id as author_id,
                           title,
                           content,
-                          EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64",
-                          EXTRACT(EPOCH FROM updated_at)::bigint as "updated_at!: i64"
+                          EXTRACT(EPOCH FROM created_at)::bigint as created_at,
+                          EXTRACT(EPOCH FROM updated_at)::bigint as updated_at
                    FROM notes WHERE id = $1"#,
             )
             .bind(note_id)
@@ -200,12 +200,12 @@ pub mod postgres {
                        content = COALESCE($2, content),
                        updated_at = NOW()
                    WHERE id = $3 AND user_id = $4
-                   RETURNING id as "id!: i64",
-                             user_id as "author_id!: i64",
+                   RETURNING id,
+                             user_id as author_id,
                              title,
                              content,
-                             EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64",
-                             EXTRACT(EPOCH FROM updated_at)::bigint as "updated_at!: i64""#,
+                             EXTRACT(EPOCH FROM created_at)::bigint as created_at,
+                             EXTRACT(EPOCH FROM updated_at)::bigint as updated_at"#,
             )
             .bind(title)
             .bind(content)
@@ -231,12 +231,12 @@ pub mod postgres {
 
         async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
             let notes = sqlx::query_as::<sqlx::Postgres, Note>(
-                r#"SELECT id as "id!: i64",
-                          user_id as "author_id!: i64",
+                r#"SELECT id,
+                          user_id as author_id,
                           title,
                           content,
-                          EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64",
-                          EXTRACT(EPOCH FROM updated_at)::bigint as "updated_at!: i64"
+                          EXTRACT(EPOCH FROM created_at)::bigint as created_at,
+                          EXTRACT(EPOCH FROM updated_at)::bigint as updated_at
                    FROM notes ORDER BY created_at DESC"#
             )
             .fetch_all(&self.pool)

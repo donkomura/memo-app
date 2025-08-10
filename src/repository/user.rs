@@ -122,7 +122,7 @@ pub mod postgres {
                    RETURNING id,
                              email,
                              password_hash,
-                             EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64""#,
+                             EXTRACT(EPOCH FROM created_at)::bigint as created_at"#,
             )
             .bind(email)
             .bind(password_hash)
@@ -149,7 +149,7 @@ pub mod postgres {
                 r#"SELECT id,
                           email,
                           password_hash,
-                          EXTRACT(EPOCH FROM created_at)::bigint as "created_at!: i64"
+                          EXTRACT(EPOCH FROM created_at)::bigint as created_at
                    FROM users WHERE email = $1"#,
             )
             .bind(email)
