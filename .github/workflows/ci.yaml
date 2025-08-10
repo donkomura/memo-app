@@ -51,8 +51,8 @@ jobs:
         run: cargo check --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
       - name: Build with profiling
         run: cargo build --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
-      - name: Test (nextest)
-        run: cargo nextest run --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --workspace --no-fail-fast
+      - name: Test
+        run: cargo test --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --workspace --no-fail-fast
 
   clippy:
     runs-on: ubuntu-latest
