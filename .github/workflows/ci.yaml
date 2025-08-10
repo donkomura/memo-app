@@ -6,13 +6,22 @@ on:
         - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_SIZE: "2G"
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - profile: dev
@@ -31,43 +40,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          profile: minimal
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.profile}}
-
+          cache-on-failure: true
+      - uses: Mozilla-Actions/sccache-action@v0.10.0
+      - name: Cargo fetch (lockfile respected)
+        run: cargo fetch --locked
       - name: Check
         run: cargo check --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
-
       - name: Build with profiling
         run: cargo build --profile ${{ matrix.profile }} --features ${{ matrix.feature }}
-
-      - name: Test
-        run: cargo test --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --all -- --nocapture
+      - name: Test (nextest)
+        run: cargo nextest run --profile ${{ matrix.profile }} --features ${{ matrix.feature }} --workspace --no-fail-fast
 
   clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
         with:
+          profile: minimal
           components: clippy
-
+      - uses: Mozilla-Actions/sccache-action@v0.10.0
       - uses: Swatinem/rust-cache@v2
-
+        with:
+          key: clippy
+          cache-on-failure: true
       - name: Run clippy
-        run: cargo clippy --all --all-targets
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
   rustfmt:
-    runs-on: ubuntu-24.04
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@nightly
         with:
+          profile: minimal
           components: rustfmt
-
       - name: Run rustfmt
         run: cargo fmt --all -- --check
