@@ -15,15 +15,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - profile: debug
+          - profile: dev
             feature: "default"
-            name: debug
+            name: dev
           - profile: release
             feature: "default"
             name: release
-          - profile: debug
+          - profile: dev
             feature: "postgres --no-default-features"
-            name: debug-postgres
+            name: dev-postgres
           - profile: release
             feature: "postgres --no-default-features"
             name: release-postgres
