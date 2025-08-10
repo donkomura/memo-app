@@ -40,14 +40,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          profile: minimal
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.profile}}
           cache-on-failure: true
-      - uses: Mozilla-Actions/sccache-action@v0.10.0
+      - uses: Mozilla-Actions/sccache-action@v0.0.9
       - name: Cargo fetch (lockfile respected)
         run: cargo fetch --locked
       - name: Check
@@ -63,9 +60,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           components: clippy
-      - uses: Mozilla-Actions/sccache-action@v0.10.0
+      - uses: Mozilla-Actions/sccache-action@v0.0.9
       - uses: Swatinem/rust-cache@v2
         with:
           key: clippy
@@ -79,7 +75,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: minimal
           components: rustfmt
       - name: Run rustfmt
         run: cargo fmt --all -- --check
