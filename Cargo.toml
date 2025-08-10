@@ -19,3 +19,6 @@ jsonwebtoken = "9"
 [features]
 default = ["sqlx/sqlite"]
 postgres = ["sqlx/postgres"]
+
+[dev-dependencies]
+sqlx-cli = { version = "0.8.6", features = ["postgres"] }
