@@ -26,8 +26,10 @@ pub enum RepoError {
 }
 
 // SQLite 実装はモジュールにまとめ、メッセージ文字列を定数化
+#[cfg(not(feature = "postgres"))]
 pub use sqlite::SqliteUserRepository;
 
+#[cfg(not(feature = "postgres"))]
 pub mod sqlite {
     use super::*;
     use sqlx::SqlitePool;
