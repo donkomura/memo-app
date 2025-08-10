@@ -1,6 +1,6 @@
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{encode, decode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use thiserror::Error;
 
 use super::model::JWTClaim;
@@ -11,9 +11,9 @@ pub enum TokenError {
     Encode,
     #[error("decoding error")]
     Decode,
-    #[error("missing JWT_SECRET env")] 
+    #[error("missing JWT_SECRET env")]
     MissingSecret,
-    #[error("invalid JWT_EXP_SECS env")] 
+    #[error("invalid JWT_EXP_SECS env")]
     InvalidExpiration,
 }
 
@@ -36,14 +36,19 @@ impl JwtTokenService {
     pub fn from_env() -> Result<Self, TokenError> {
         let secret = std::env::var("JWT_SECRET").map_err(|_| TokenError::MissingSecret)?;
         let exp = match std::env::var("JWT_EXP_SECS") {
-            Ok(v) => v.parse::<u64>().map_err(|_| TokenError::InvalidExpiration)?,
+            Ok(v) => v
+                .parse::<u64>()
+                .map_err(|_| TokenError::InvalidExpiration)?,
             Err(_) => Self::DEFAULT_EXPIRATION_SECS,
         };
         Ok(Self::from_secret(secret.as_bytes(), exp))
     }
 
     pub fn generate(&self, user_id: i64) -> Result<String, TokenError> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or(Duration::from_secs(0)).as_secs() as i64;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or(Duration::from_secs(0))
+            .as_secs() as i64;
         let claims = JWTClaim {
             sub: user_id,
             iat: now,
@@ -61,10 +66,13 @@ impl JwtTokenService {
             .map_err(|_| TokenError::Decode)?;
 
         // 念のため手動でも exp を検証（バージョン差異対策）
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or(Duration::from_secs(0)).as_secs() as i64;
-        if claims.exp < now { return Err(TokenError::Decode); }
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or(Duration::from_secs(0))
+            .as_secs() as i64;
+        if claims.exp < now {
+            return Err(TokenError::Decode);
+        }
         Ok(claims)
     }
 }
-
-

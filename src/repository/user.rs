@@ -1,11 +1,15 @@
-use thiserror::Error;
 use crate::domain::model::User;
+use thiserror::Error;
 
 pub const USERS_EMAIL_UNIQUE_CONSTRAINT: &str = "users.email"; // unique index/constraint name
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {
-    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError>;
+    async fn create_user(
+        &self,
+        email: &str,
+        password_hash: &str,
+    ) -> Result<Option<User>, RepoError>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError>;
 }
 
@@ -33,20 +37,25 @@ pub mod sqlite {
     }
 
     impl SqliteUserRepository {
-        pub fn new(pool: SqlitePool) -> Self { Self { pool } }
+        pub fn new(pool: SqlitePool) -> Self {
+            Self { pool }
+        }
     }
 
     #[async_trait::async_trait]
     impl UserRepository for SqliteUserRepository {
-        async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
-            let inserted = sqlx::query_as!(
-                User,
+        async fn create_user(
+            &self,
+            email: &str,
+            password_hash: &str,
+        ) -> Result<Option<User>, RepoError> {
+            let inserted = sqlx::query_as::<sqlx::Sqlite, User>(
                 r#"INSERT INTO users (email, password_hash, created_at)
                    VALUES (?, ?, strftime('%s','now'))
                    RETURNING id, email, password_hash, created_at"#,
-                email,
-                password_hash
             )
+            .bind(email)
+            .bind(password_hash)
             .fetch_one(&self.pool)
             .await;
 
@@ -54,7 +63,9 @@ pub mod sqlite {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => {
                     if let sqlx::Error::Database(db_err) = &e {
-                        if db_err.is_unique_violation() && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT) {
+                        if db_err.is_unique_violation()
+                            && db_err.constraint() == Some(USERS_EMAIL_UNIQUE_CONSTRAINT)
+                        {
                             return Ok(None);
                         }
                     }
@@ -91,20 +102,25 @@ pub mod postgres {
     }
 
     impl PgUserRepository {
-        pub fn new(pool: PgPool) -> Self { Self { pool } }
+        pub fn new(pool: PgPool) -> Self {
+            Self { pool }
+        }
     }
 
     #[async_trait::async_trait]
     impl UserRepository for PgUserRepository {
-        async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
-            let inserted = sqlx::query_as!(
-                User,
+        async fn create_user(
+            &self,
+            email: &str,
+            password_hash: &str,
+        ) -> Result<Option<User>, RepoError> {
+            let inserted = sqlx::query_as::<sqlx::Postgres, User>(
                 r#"INSERT INTO users (email, password_hash, created_at)
                    VALUES ($1, $2, EXTRACT(EPOCH FROM NOW())::bigint)
                    RETURNING id, email, password_hash, created_at"#,
-                email,
-                password_hash
             )
+            .bind(email)
+            .bind(password_hash)
             .fetch_one(&self.pool)
             .await;
 
@@ -124,11 +140,10 @@ pub mod postgres {
         }
 
         async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError> {
-            let user = sqlx::query_as!(
-                User,
+            let user = sqlx::query_as::<sqlx::Postgres, User>(
                 r#"SELECT id, email, password_hash, created_at FROM users WHERE email = $1"#,
-                email
             )
+            .bind(email)
             .fetch_optional(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -141,19 +156,37 @@ pub mod postgres {
 pub struct MockRepoSuccess;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoSuccess {
-    async fn create_user(&self, email: &str, password_hash: &str) -> Result<Option<User>, RepoError> {
-        Ok(Some(User { id: 1, email: email.to_string(), password_hash: password_hash.to_string(), created_at: 0 }))
+    async fn create_user(
+        &self,
+        email: &str,
+        password_hash: &str,
+    ) -> Result<Option<User>, RepoError> {
+        Ok(Some(User {
+            id: 1,
+            email: email.to_string(),
+            password_hash: password_hash.to_string(),
+            created_at: 0,
+        }))
     }
 
     async fn find_by_email(&self, _email: &str) -> Result<Option<User>, RepoError> {
-        Ok(Some(User { id: 1, email: _email.to_string(), password_hash: "x".into(), created_at: 0 }))
+        Ok(Some(User {
+            id: 1,
+            email: _email.to_string(),
+            password_hash: "x".into(),
+            created_at: 0,
+        }))
     }
 }
 
 pub struct MockRepoConflict;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoConflict {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
+    async fn create_user(
+        &self,
+        _email: &str,
+        _password_hash: &str,
+    ) -> Result<Option<User>, RepoError> {
         Ok(None)
     }
 
@@ -169,7 +202,11 @@ pub struct MockRepoWithUser {
 
 #[async_trait::async_trait]
 impl UserRepository for MockRepoWithUser {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
+    async fn create_user(
+        &self,
+        _email: &str,
+        _password_hash: &str,
+    ) -> Result<Option<User>, RepoError> {
         Ok(Some(self.user.clone()))
     }
 

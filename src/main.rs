@@ -5,27 +5,29 @@ mod domain;
 mod middleware;
 
 use actix_web::{web, App, HttpServer};
+#[cfg(not(feature = "postgres"))]
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+#[cfg(feature = "postgres")]
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::Arc;
 
 use app::auth::{signup, login, me};
 use app::notes::{get_note, create_note, update_note, delete_note, list_notes};
-use repository::user::{SqliteUserRepository, UserRepository};
-use repository::note::{SqliteNoteRepository, NoteRepository};
+use repository::user::UserRepository;
+use repository::note::NoteRepository;
+#[cfg(not(feature = "postgres"))]
+use repository::{user::SqliteUserRepository, note::SqliteNoteRepository};
+#[cfg(feature = "postgres")]
+use repository::{user::PgUserRepository, note::PgNoteRepository};
 use service::auth::{AuthService, AuthServiceImpl};
 use middleware::auth::token::JwtTokenService;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool: SqlitePool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("db connect"); 
+    let pool: AppPool = create_pool(&database_url).await;
 
-    let user_repo: Arc<dyn UserRepository> = Arc::new(SqliteUserRepository::new(pool.clone()));
-    let note_repo: Arc<dyn NoteRepository> = Arc::new(SqliteNoteRepository::new(pool.clone()));
+    let (user_repo, note_repo) = create_repositories(pool.clone());
     let auth_service: Arc<dyn AuthService> = Arc::new(AuthServiceImpl::new(user_repo.clone()));
     let jwt = web::Data::new(JwtTokenService::from_env().expect("JWT config"));
 
@@ -46,4 +48,43 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
+}
+
+#[cfg(feature = "postgres")]
+type AppPool = PgPool;
+#[cfg(not(feature = "postgres"))]
+type AppPool = SqlitePool;
+
+#[cfg(feature = "postgres")]
+async fn create_pool(database_url: &str) -> AppPool {
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(database_url)
+        .await
+        .expect("db connect")
+}
+
+#[cfg(not(feature = "postgres"))]
+async fn create_pool(database_url: &str) -> AppPool {
+    SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(database_url)
+        .await
+        .expect("db connect")
+}
+
+#[cfg(feature = "postgres")]
+fn create_repositories(pool: AppPool) -> (Arc<dyn UserRepository>, Arc<dyn NoteRepository>) {
+    (
+        Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn UserRepository>,
+        Arc::new(PgNoteRepository::new(pool)) as Arc<dyn NoteRepository>,
+    )
+}
+
+#[cfg(not(feature = "postgres"))]
+fn create_repositories(pool: AppPool) -> (Arc<dyn UserRepository>, Arc<dyn NoteRepository>) {
+    (
+        Arc::new(SqliteUserRepository::new(pool.clone())) as Arc<dyn UserRepository>,
+        Arc::new(SqliteNoteRepository::new(pool)) as Arc<dyn NoteRepository>,
+    )
 }
