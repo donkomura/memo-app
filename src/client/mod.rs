@@ -75,7 +75,7 @@ impl HttpClient {
         bearer_token: Option<&str>,
     ) -> ClientResult<T> {
         let (status, text) = self.post_json(path, body, bearer_token).await?;
-        if status >= 200 && status < 300 {
+        if (200..300).contains(&status) {
             serde_json::from_str::<T>(&text).map_err(|e| ClientError(e.to_string()))
         } else {
             Err(ClientError(format!("{} {}", status, text)))
@@ -113,7 +113,7 @@ impl HttpClient {
         bearer_token: Option<&str>,
     ) -> ClientResult<T> {
         let (status, text) = self.put_json(path, body, bearer_token).await?;
-        if status >= 200 && status < 300 {
+        if (200..300).contains(&status) {
             serde_json::from_str::<T>(&text).map_err(|e| ClientError(e.to_string()))
         } else {
             Err(ClientError(format!("{} {}", status, text)))
@@ -143,7 +143,7 @@ impl HttpClient {
         bearer_token: Option<&str>,
     ) -> ClientResult<T> {
         let (status, text) = self.get(path, bearer_token).await?;
-        if status >= 200 && status < 300 {
+        if (200..300).contains(&status) {
             serde_json::from_str::<T>(&text).map_err(|e| ClientError(e.to_string()))
         } else {
             Err(ClientError(format!("{} {}", status, text)))
