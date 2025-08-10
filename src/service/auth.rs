@@ -93,6 +93,7 @@ impl AuthService for AuthServiceImpl {
 }
 
 // Mocks for tests
+#[allow(dead_code)]
 pub struct MockAuthServiceSuccess;
 
 #[async_trait::async_trait]
@@ -116,6 +117,7 @@ impl AuthService for MockAuthServiceSuccess {
     }
 }
 
+#[allow(dead_code)]
 pub struct MockAuthServiceConflict;
 
 #[async_trait::async_trait]

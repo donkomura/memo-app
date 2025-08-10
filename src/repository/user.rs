@@ -13,6 +13,7 @@ pub trait UserRepository: Send + Sync + 'static {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError>;
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum RepoError {
     #[error("database error: {0}")]
@@ -154,6 +155,7 @@ pub mod postgres {
 }
 
 // Mock 実装（テストで使用）
+#[allow(dead_code)]
 pub struct MockRepoSuccess;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoSuccess {
@@ -180,6 +182,7 @@ impl UserRepository for MockRepoSuccess {
     }
 }
 
+#[allow(dead_code)]
 pub struct MockRepoConflict;
 #[async_trait::async_trait]
 impl UserRepository for MockRepoConflict {
@@ -197,6 +200,7 @@ impl UserRepository for MockRepoConflict {
 }
 
 // モック（任意の1ユーザーを保持して検索に応答）
+#[allow(dead_code)]
 pub struct MockRepoWithUser {
     pub user: User,
 }
