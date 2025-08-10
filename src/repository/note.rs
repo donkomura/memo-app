@@ -114,7 +114,7 @@ pub mod sqlite {
             let notes = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"SELECT id, user_id as author_id, title, content, created_at, updated_at
                    FROM notes
-                   ORDER BY created_at DESC"#
+                   ORDER BY created_at DESC"#,
             )
             .fetch_all(&self.pool)
             .await
@@ -237,7 +237,7 @@ pub mod postgres {
                           content,
                           EXTRACT(EPOCH FROM created_at)::bigint as created_at,
                           EXTRACT(EPOCH FROM updated_at)::bigint as updated_at
-                   FROM notes ORDER BY created_at DESC"#
+                   FROM notes ORDER BY created_at DESC"#,
             )
             .fetch_all(&self.pool)
             .await

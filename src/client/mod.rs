@@ -1,5 +1,5 @@
-use awc::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use awc::Client;
+use awc::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::fmt::{Display, Formatter};
@@ -37,15 +37,9 @@ impl HttpClient {
         if let Some(token) = bearer_token {
             req = req.insert_header((AUTHORIZATION, format!("Bearer {}", token)));
         }
-        let mut res = req
-            .send()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let mut res = req.send().await.map_err(|e| ClientError(e.to_string()))?;
         let status = res.status().as_u16();
-        let body = res
-            .body()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let body = res.body().await.map_err(|e| ClientError(e.to_string()))?;
         let text = String::from_utf8(body.to_vec()).unwrap_or_default();
         Ok((status, text))
     }
@@ -69,10 +63,7 @@ impl HttpClient {
             .await
             .map_err(|e| ClientError(e.to_string()))?;
         let status = res.status().as_u16();
-        let body = res
-            .body()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let body = res.body().await.map_err(|e| ClientError(e.to_string()))?;
         let text = String::from_utf8(body.to_vec()).unwrap_or_default();
         Ok((status, text))
     }
@@ -110,10 +101,7 @@ impl HttpClient {
             .await
             .map_err(|e| ClientError(e.to_string()))?;
         let status = res.status().as_u16();
-        let body = res
-            .body()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let body = res.body().await.map_err(|e| ClientError(e.to_string()))?;
         let text = String::from_utf8(body.to_vec()).unwrap_or_default();
         Ok((status, text))
     }
@@ -142,15 +130,9 @@ impl HttpClient {
         if let Some(token) = bearer_token {
             req = req.insert_header((AUTHORIZATION, format!("Bearer {}", token)));
         }
-        let mut res = req
-            .send()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let mut res = req.send().await.map_err(|e| ClientError(e.to_string()))?;
         let status = res.status().as_u16();
-        let body = res
-            .body()
-            .await
-            .map_err(|e| ClientError(e.to_string()))?;
+        let body = res.body().await.map_err(|e| ClientError(e.to_string()))?;
         let text = String::from_utf8(body.to_vec()).unwrap_or_default();
         Ok((status, text))
     }
@@ -176,4 +158,3 @@ fn join_url(base: &str, path: &str) -> String {
         path.trim_start_matches('/')
     )
 }
-
