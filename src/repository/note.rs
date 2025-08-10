@@ -3,7 +3,12 @@ use crate::repository::user::RepoError;
 
 #[async_trait::async_trait]
 pub trait NoteRepository: Send + Sync + 'static {
-    async fn create_note(&self, user_id: i64, title: &str, content: &str) -> Result<Note, RepoError>;
+    async fn create_note(
+        &self,
+        user_id: i64,
+        title: &str,
+        content: &str,
+    ) -> Result<Note, RepoError>;
     async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError>;
     async fn update_note(
         &self,
@@ -27,21 +32,27 @@ pub mod sqlite {
     }
 
     impl SqliteNoteRepository {
-        pub fn new(pool: SqlitePool) -> Self { Self { pool } }
+        pub fn new(pool: SqlitePool) -> Self {
+            Self { pool }
+        }
     }
 
     #[async_trait::async_trait]
     impl NoteRepository for SqliteNoteRepository {
-        async fn create_note(&self, user_id: i64, title: &str, content: &str) -> Result<Note, RepoError> {
-            let inserted = sqlx::query_as!(
-                Note,
+        async fn create_note(
+            &self,
+            user_id: i64,
+            title: &str,
+            content: &str,
+        ) -> Result<Note, RepoError> {
+            let inserted = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"INSERT INTO notes (user_id, title, content, created_at, updated_at)
                    VALUES (?, ?, ?, strftime('%s','now'), strftime('%s','now'))
                    RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
-                user_id,
-                title,
-                content
             )
+            .bind(user_id)
+            .bind(title)
+            .bind(content)
             .fetch_one(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -49,13 +60,12 @@ pub mod sqlite {
             Ok(inserted)
         }
         async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
-            let note = sqlx::query_as!(
-                Note,
+            let note = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
                    FROM notes
                    WHERE id = ?"#,
-                note_id
             )
+            .bind(note_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -70,19 +80,18 @@ pub mod sqlite {
             title: Option<&str>,
             content: Option<&str>,
         ) -> Result<Option<Note>, RepoError> {
-            let updated = sqlx::query_as!(
-                Note,
+            let updated = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"UPDATE notes
                    SET title = COALESCE(?, title),
                        content = COALESCE(?, content),
                        updated_at = strftime('%s','now')
                    WHERE id = ? AND user_id = ?
                    RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
-                title,
-                content,
-                note_id,
-                user_id
             )
+            .bind(title)
+            .bind(content)
+            .bind(note_id)
+            .bind(user_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -90,19 +99,17 @@ pub mod sqlite {
             Ok(updated)
         }
         async fn delete_note(&self, note_id: i64, user_id: i64) -> Result<bool, RepoError> {
-            let result = sqlx::query!(
-                r#"DELETE FROM notes WHERE id = ? AND user_id = ?"#,
-                note_id,
-                user_id
-            )
-            .execute(&self.pool)
-            .await
-            .map_err(RepoError::DbError)?;
+            let result =
+                sqlx::query::<sqlx::Sqlite>(r#"DELETE FROM notes WHERE id = ? AND user_id = ?"#)
+                    .bind(note_id)
+                    .bind(user_id)
+                    .execute(&self.pool)
+                    .await
+                    .map_err(RepoError::DbError)?;
             Ok(result.rows_affected() > 0)
         }
         async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
-            let notes = sqlx::query_as!(
-                Note,
+            let notes = sqlx::query_as::<sqlx::Sqlite, Note>(
                 r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
                    FROM notes
                    ORDER BY created_at DESC"#
@@ -124,22 +131,32 @@ pub mod postgres {
     use super::*;
     use sqlx::PgPool;
 
-    pub struct PgNoteRepository { pub(crate) pool: PgPool }
+    pub struct PgNoteRepository {
+        pub(crate) pool: PgPool,
+    }
 
-    impl PgNoteRepository { pub fn new(pool: PgPool) -> Self { Self { pool } } }
+    impl PgNoteRepository {
+        pub fn new(pool: PgPool) -> Self {
+            Self { pool }
+        }
+    }
 
     #[async_trait::async_trait]
     impl NoteRepository for PgNoteRepository {
-        async fn create_note(&self, user_id: i64, title: &str, content: &str) -> Result<Note, RepoError> {
-            let inserted = sqlx::query_as!(
-                Note,
+        async fn create_note(
+            &self,
+            user_id: i64,
+            title: &str,
+            content: &str,
+        ) -> Result<Note, RepoError> {
+            let inserted = sqlx::query_as::<sqlx::Postgres, Note>(
                 r#"INSERT INTO notes (user_id, title, content, created_at, updated_at)
                    VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW())::bigint, EXTRACT(EPOCH FROM NOW())::bigint)
                    RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
-                user_id,
-                title,
-                content
             )
+            .bind(user_id)
+            .bind(title)
+            .bind(content)
             .fetch_one(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -147,12 +164,11 @@ pub mod postgres {
         }
 
         async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
-            let note = sqlx::query_as!(
-                Note,
+            let note = sqlx::query_as::<sqlx::Postgres, Note>(
                 r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
                    FROM notes WHERE id = $1"#,
-                note_id
             )
+            .bind(note_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -166,19 +182,18 @@ pub mod postgres {
             title: Option<&str>,
             content: Option<&str>,
         ) -> Result<Option<Note>, RepoError> {
-            let updated = sqlx::query_as!(
-                Note,
+            let updated = sqlx::query_as::<sqlx::Postgres, Note>(
                 r#"UPDATE notes
                    SET title = COALESCE($1, title),
                        content = COALESCE($2, content),
                        updated_at = EXTRACT(EPOCH FROM NOW())::bigint
                    WHERE id = $3 AND user_id = $4
                    RETURNING id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64""#,
-                title,
-                content,
-                note_id,
-                user_id
             )
+            .bind(title)
+            .bind(content)
+            .bind(note_id)
+            .bind(user_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -186,11 +201,11 @@ pub mod postgres {
         }
 
         async fn delete_note(&self, note_id: i64, user_id: i64) -> Result<bool, RepoError> {
-            let res = sqlx::query!(
+            let res = sqlx::query::<sqlx::Postgres>(
                 r#"DELETE FROM notes WHERE id = $1 AND user_id = $2"#,
-                note_id,
-                user_id
             )
+            .bind(note_id)
+            .bind(user_id)
             .execute(&self.pool)
             .await
             .map_err(RepoError::DbError)?;
@@ -198,8 +213,7 @@ pub mod postgres {
         }
 
         async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
-            let notes = sqlx::query_as!(
-                Note,
+            let notes = sqlx::query_as::<sqlx::Postgres, Note>(
                 r#"SELECT id as "id!: i64", user_id as "author_id!: i64", title, content, created_at as "created_at!: i64", updated_at as "updated_at!: i64"
                    FROM notes ORDER BY created_at DESC"#
             )

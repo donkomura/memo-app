@@ -1,3 +1,3 @@
-pub mod model;
 pub mod auth;
+pub mod model;
 pub mod notes;

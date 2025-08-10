@@ -1,10 +1,10 @@
-use actix_web::{get, post, put, delete, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, delete, get, post, put, web};
 use std::sync::Arc;
 
-use crate::middleware::auth::extractor::AuthenticatedUser;
 use crate::app::model::CreateNoteInput;
-use crate::repository::note::NoteRepository;
 use crate::app::model::UpdateNoteInput;
+use crate::middleware::auth::extractor::AuthenticatedUser;
+use crate::repository::note::NoteRepository;
 
 #[get("/notes/{id}")]
 pub async fn get_note(
@@ -25,7 +25,10 @@ pub async fn create_note(
     note_repo: web::Data<Arc<dyn NoteRepository>>,
     payload: web::Json<CreateNoteInput>,
 ) -> impl Responder {
-    match note_repo.create_note(user.0.sub, &payload.title, &payload.content).await {
+    match note_repo
+        .create_note(user.0.sub, &payload.title, &payload.content)
+        .await
+    {
         Ok(note) => HttpResponse::Created().json(note),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -58,9 +61,7 @@ pub async fn update_note(
         )
         .await
     {
-        Ok(Some(note)) => { 
-            HttpResponse::Ok().json(note)
-        }
+        Ok(Some(note)) => HttpResponse::Ok().json(note),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -90,9 +91,7 @@ pub async fn delete_note(
     }
 }
 #[get("/notes")]
-pub async fn list_notes(
-    note_repo: web::Data<Arc<dyn NoteRepository>>,
-) -> impl Responder {
+pub async fn list_notes(note_repo: web::Data<Arc<dyn NoteRepository>>) -> impl Responder {
     match note_repo.list_notes().await {
         Ok(notes) => HttpResponse::Ok().json(notes),
         Err(_) => HttpResponse::InternalServerError().finish(),

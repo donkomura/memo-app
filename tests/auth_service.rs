@@ -1,15 +1,21 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use memo_app::repository::user::{RepoError, UserRepository, MockRepoSuccess, MockRepoConflict, MockRepoWithUser};
 use memo_app::domain::model::User;
-use memo_app::service::auth::{AuthService, AuthServiceImpl, AuthServiceError};
+use memo_app::repository::user::{
+    MockRepoConflict, MockRepoSuccess, MockRepoWithUser, RepoError, UserRepository,
+};
+use memo_app::service::auth::{AuthService, AuthServiceError, AuthServiceImpl};
 
 struct MockRepoError;
 
 #[async_trait]
 impl UserRepository for MockRepoError {
-    async fn create_user(&self, _email: &str, _password_hash: &str) -> Result<Option<User>, RepoError> {
+    async fn create_user(
+        &self,
+        _email: &str,
+        _password_hash: &str,
+    ) -> Result<Option<User>, RepoError> {
         Err(RepoError::Internal)
     }
     async fn find_by_email(&self, _email: &str) -> Result<Option<User>, RepoError> {
@@ -67,14 +73,22 @@ async fn signup_returns_error_when_password_invalid() {
 fn phc(password: &str) -> String {
     // テスト用の簡易ハッシュ生成（Argon2 ベース）
     use argon2::{Argon2, PasswordHasher};
-    use password_hash::{rand_core::OsRng, SaltString};
+    use password_hash::{SaltString, rand_core::OsRng};
     let salt = SaltString::generate(&mut OsRng);
-    Argon2::default().hash_password(password.as_bytes(), &salt).unwrap().to_string()
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .unwrap()
+        .to_string()
 }
 
 #[tokio::test]
 async fn login_returns_user_when_credentials_valid() {
-    let user = User { id: 1, email: "a@example.com".into(), password_hash: phc("password123"), created_at: 0 };
+    let user = User {
+        id: 1,
+        email: "a@example.com".into(),
+        password_hash: phc("password123"),
+        created_at: 0,
+    };
     let repo = Arc::new(MockRepoWithUser { user });
     let service = AuthServiceImpl::new(repo);
 
@@ -84,7 +98,12 @@ async fn login_returns_user_when_credentials_valid() {
 
 #[tokio::test]
 async fn login_returns_error_when_password_wrong() {
-    let user = User { id: 1, email: "a@example.com".into(), password_hash: phc("password123"), created_at: 0 };
+    let user = User {
+        id: 1,
+        email: "a@example.com".into(),
+        password_hash: phc("password123"),
+        created_at: 0,
+    };
     let repo = Arc::new(MockRepoWithUser { user });
     let service = AuthServiceImpl::new(repo);
 
@@ -94,12 +113,15 @@ async fn login_returns_error_when_password_wrong() {
 
 #[tokio::test]
 async fn login_returns_error_when_user_not_found() {
-    let user = User { id: 1, email: "b@example.com".into(), password_hash: phc("password123"), created_at: 0 };
+    let user = User {
+        id: 1,
+        email: "b@example.com".into(),
+        password_hash: phc("password123"),
+        created_at: 0,
+    };
     let repo = Arc::new(MockRepoWithUser { user });
     let service = AuthServiceImpl::new(repo);
 
     let result = service.login("a@example.com", "password123").await;
     assert!(matches!(result, Err(AuthServiceError::InvalidCredentials)));
 }
-
-

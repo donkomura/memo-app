@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use memo_app::middleware::auth::model::JWTClaim;
 use memo_app::middleware::auth::token::{JwtTokenService, TokenError};
 
@@ -30,9 +30,17 @@ fn verify_fails_when_expired() {
 
     // exp を過去にしたトークンを手動生成
     let past = now() - 1;
-    let claim = JWTClaim { sub: 1, iat: past - 10, exp: past };
-    let token = encode(&Header::new(Algorithm::HS256), &claim, &EncodingKey::from_secret(secret))
-        .expect("encode");
+    let claim = JWTClaim {
+        sub: 1,
+        iat: past - 10,
+        exp: past,
+    };
+    let token = encode(
+        &Header::new(Algorithm::HS256),
+        &claim,
+        &EncodingKey::from_secret(secret),
+    )
+    .expect("encode");
 
     let res = svc.verify(&token);
     assert!(matches!(res, Err(TokenError::Decode)));
@@ -47,5 +55,3 @@ fn verify_fails_with_wrong_secret() {
     let res = bad.verify(&token);
     assert!(matches!(res, Err(TokenError::Decode)));
 }
-
-

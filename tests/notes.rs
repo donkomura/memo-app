@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use actix_web::{http::StatusCode, test, web, App};
+use actix_web::{App, http::StatusCode, test, web};
 use async_trait::async_trait;
-use memo_app::app::notes::{create_note, get_note, update_note, delete_note};
 use memo_app::app::model::{CreateNoteInput, UpdateNoteInput};
+use memo_app::app::notes::{create_note, delete_note, get_note, update_note};
 use memo_app::domain::model::Note;
 use memo_app::middleware::auth::token::JwtTokenService;
 use memo_app::repository::note::NoteRepository;
@@ -15,7 +15,12 @@ struct MockNoteRepoCreateOk;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoCreateOk {
-    async fn create_note(&self, user_id: i64, title: &str, content: &str) -> Result<Note, RepoError> {
+    async fn create_note(
+        &self,
+        user_id: i64,
+        title: &str,
+        content: &str,
+    ) -> Result<Note, RepoError> {
         Ok(Note {
             id: 1,
             author_id: user_id,
@@ -44,14 +49,21 @@ impl NoteRepository for MockNoteRepoCreateOk {
         Ok(vec![])
     }
 
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(false)
+    }
 }
 
 struct MockNoteRepoFindSome;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoFindSome {
-    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> {
+    async fn create_note(
+        &self,
+        _user_id: i64,
+        _title: &str,
+        _content: &str,
+    ) -> Result<Note, RepoError> {
         Err(RepoError::Internal)
     }
 
@@ -80,14 +92,21 @@ impl NoteRepository for MockNoteRepoFindSome {
         Ok(vec![])
     }
 
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(false)
+    }
 }
 
 struct MockNoteRepoFindNone;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoFindNone {
-    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> {
+    async fn create_note(
+        &self,
+        _user_id: i64,
+        _title: &str,
+        _content: &str,
+    ) -> Result<Note, RepoError> {
         Err(RepoError::Internal)
     }
 
@@ -109,18 +128,32 @@ impl NoteRepository for MockNoteRepoFindNone {
         Ok(vec![])
     }
 
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(false)
+    }
 }
 
 struct MockNoteRepoUpdateOk;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoUpdateOk {
-    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> {
+    async fn create_note(
+        &self,
+        _user_id: i64,
+        _title: &str,
+        _content: &str,
+    ) -> Result<Note, RepoError> {
         Err(RepoError::Internal)
     }
     async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
-        Ok(Some(Note { id: note_id, author_id: 42, title: "t".into(), content: "c".into(), created_at: 1, updated_at: 1 }))
+        Ok(Some(Note {
+            id: note_id,
+            author_id: 42,
+            title: "t".into(),
+            content: "c".into(),
+            created_at: 1,
+            updated_at: 1,
+        }))
     }
     async fn update_note(
         &self,
@@ -143,41 +176,82 @@ impl NoteRepository for MockNoteRepoUpdateOk {
         Ok(vec![])
     }
 
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(false)
+    }
 }
 
 struct MockNoteRepoUpdateNone;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoUpdateNone {
-    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> { Err(RepoError::Internal) }
-    async fn find_by_id(&self, _note_id: i64) -> Result<Option<Note>, RepoError> { Ok(None) }
+    async fn create_note(
+        &self,
+        _user_id: i64,
+        _title: &str,
+        _content: &str,
+    ) -> Result<Note, RepoError> {
+        Err(RepoError::Internal)
+    }
+    async fn find_by_id(&self, _note_id: i64) -> Result<Option<Note>, RepoError> {
+        Ok(None)
+    }
     async fn update_note(
         &self,
         _note_id: i64,
         _user_id: i64,
         _title: Option<&str>,
         _content: Option<&str>,
-    ) -> Result<Option<Note>, RepoError> { Ok(None) }
+    ) -> Result<Option<Note>, RepoError> {
+        Ok(None)
+    }
 
     async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
         Ok(vec![])
     }
 
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(false) }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(false)
+    }
 }
 
 struct MockNoteRepoDeleteOk;
 
 #[async_trait]
 impl NoteRepository for MockNoteRepoDeleteOk {
-    async fn create_note(&self, _user_id: i64, _title: &str, _content: &str) -> Result<Note, RepoError> { Err(RepoError::Internal) }
-    async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
-        Ok(Some(Note { id: note_id, author_id: 1, title: "t".into(), content: "c".into(), created_at: 1, updated_at: 1 }))
+    async fn create_note(
+        &self,
+        _user_id: i64,
+        _title: &str,
+        _content: &str,
+    ) -> Result<Note, RepoError> {
+        Err(RepoError::Internal)
     }
-    async fn update_note(&self, _note_id: i64, _user_id: i64, _title: Option<&str>, _content: Option<&str>) -> Result<Option<Note>, RepoError> { Ok(None) }
-    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> { Ok(vec![]) }
-    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> { Ok(true) }
+    async fn find_by_id(&self, note_id: i64) -> Result<Option<Note>, RepoError> {
+        Ok(Some(Note {
+            id: note_id,
+            author_id: 1,
+            title: "t".into(),
+            content: "c".into(),
+            created_at: 1,
+            updated_at: 1,
+        }))
+    }
+    async fn update_note(
+        &self,
+        _note_id: i64,
+        _user_id: i64,
+        _title: Option<&str>,
+        _content: Option<&str>,
+    ) -> Result<Option<Note>, RepoError> {
+        Ok(None)
+    }
+    async fn list_notes(&self) -> Result<Vec<Note>, RepoError> {
+        Ok(vec![])
+    }
+    async fn delete_note(&self, _note_id: i64, _user_id: i64) -> Result<bool, RepoError> {
+        Ok(true)
+    }
 }
 
 #[actix_web::test]
@@ -242,7 +316,10 @@ async fn create_note_returns_201() {
 
     let user_id = 10;
     let token = jwt().generate(user_id).unwrap();
-    let payload = CreateNoteInput { title: "Hello".into(), content: "World".into() };
+    let payload = CreateNoteInput {
+        title: "Hello".into(),
+        content: "World".into(),
+    };
 
     let req = test::TestRequest::post()
         .uri("/notes")
@@ -262,12 +339,7 @@ async fn create_note_returns_201() {
 async fn get_note_returns_200_public() {
     let repo: Arc<dyn NoteRepository> = Arc::new(MockNoteRepoFindSome);
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(repo))
-            .service(get_note),
-    )
-    .await;
+    let app = test::init_service(App::new().app_data(web::Data::new(repo)).service(get_note)).await;
 
     let req = test::TestRequest::get().uri("/notes/1").to_request();
     let resp = test::call_service(&app, req).await;
@@ -278,12 +350,7 @@ async fn get_note_returns_200_public() {
 async fn get_note_returns_404_when_absent() {
     let repo: Arc<dyn NoteRepository> = Arc::new(MockNoteRepoFindNone);
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(repo))
-            .service(get_note),
-    )
-    .await;
+    let app = test::init_service(App::new().app_data(web::Data::new(repo)).service(get_note)).await;
 
     let req = test::TestRequest::get().uri("/notes/1").to_request();
     let resp = test::call_service(&app, req).await;
@@ -304,7 +371,10 @@ async fn update_note_returns_200_for_owner() {
 
     let user_id = 42;
     let token = jwt().generate(user_id).unwrap();
-    let payload = UpdateNoteInput { title: Some("New".into()), content: None };
+    let payload = UpdateNoteInput {
+        title: Some("New".into()),
+        content: None,
+    };
 
     let req = test::TestRequest::put()
         .uri("/notes/1")
@@ -333,7 +403,10 @@ async fn update_note_returns_404_when_not_owner_or_absent() {
     .await;
 
     let token = jwt().generate(99).unwrap();
-    let payload = UpdateNoteInput { title: None, content: Some("C".into()) };
+    let payload = UpdateNoteInput {
+        title: None,
+        content: Some("C".into()),
+    };
 
     let req = test::TestRequest::put()
         .uri("/notes/2")
@@ -343,5 +416,3 @@ async fn update_note_returns_404_when_not_owner_or_absent() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
-
-
